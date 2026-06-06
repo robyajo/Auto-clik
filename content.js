@@ -696,19 +696,23 @@ function simulateScrollDown() {
 
 // 14. Simulate mouse click at specific viewport coordinate (X, Y)
 function clickAtCoordinates(x, y) {
-  const el = document.elementFromPoint(x, y);
+  // Clamp coordinates to the current viewport to avoid null elements when resized or scrolled
+  const clampedX = Math.max(0, Math.min(x, window.innerWidth - 1));
+  const clampedY = Math.max(0, Math.min(y, window.innerHeight - 1));
+
+  let el = document.elementFromPoint(clampedX, clampedY);
   if (!el) {
-    console.warn(`TikTok Auto-Liker Pro: Tidak ada elemen pada koordinat X: ${x}, Y: ${y}`);
-    return false;
+    el = document.body;
+    console.warn(`Auto-Clicker & Liker Pro: Tidak ada elemen pada koordinat X: ${clampedX}, Y: ${clampedY}. Fallback ke document.body.`);
   }
 
-  console.log(`TikTok Auto-Liker Pro: Mengeklik elemen di koordinat (${x}, ${y}):`, el);
+  console.log(`Auto-Clicker & Liker Pro: Mengeklik elemen di koordinat (${clampedX}, ${clampedY}):`, el);
 
-  triggerClickRipple(x, y);
+  triggerClickRipple(clampedX, clampedY);
 
   const clickOpts = {
-    clientX: x,
-    clientY: y,
+    clientX: clampedX,
+    clientY: clampedY,
     bubbles: true,
     cancelable: true,
     view: window
