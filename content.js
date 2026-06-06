@@ -16,6 +16,8 @@ let currentSettings = {
 };
 let likedInCurrentSession = new Set();
 let recordedDelayIndex = 0;
+let recordedActiveStartTime = null;
+let recordedInPausePhase = false;
 
 // Dom elements references (inside shadow root)
 let panelContainerHost = null;
@@ -184,6 +186,8 @@ function toggleFloatingPanel() {
 function startLoop() {
   if (cycleTimeout) clearTimeout(cycleTimeout);
   recordedDelayIndex = 0; // Reset index when starting loop
+  recordedActiveStartTime = Date.now(); // Reset active phase start time
+  recordedInPausePhase = false; // Reset pause phase status
   isRunning = true;
   chrome.storage.local.set({ isRunning: true });
   updateStatusUI(true, 'Sedang berjalan...');
@@ -273,6 +277,27 @@ async function runCycle() {
     }
 
     if (currentSettings.useRecordedDelays && currentSettings.recordedDelays && currentSettings.recordedDelays.length > 0) {
+      const elapsed = Date.now() - recordedActiveStartTime;
+      
+      // If 1 minute (60,000ms) has elapsed, enter the 30-50s pause phase
+      if (!recordedInPausePhase && elapsed >= 60000) {
+        recordedInPausePhase = true;
+        const pauseDelay = 30000 + Math.random() * 20000; // Random between 30s and 50s
+        const secondsToPause = Math.round(pauseDelay / 1000);
+        
+        updateStatusUI(true, `Istirahat (${secondsToPause}s)...`);
+        console.log(`Auto-Clicker & Liker Pro: 1 menit aktif tercapai. Istirahat selama ${secondsToPause} detik sebelum mengulang...`);
+
+        cycleTimeout = setTimeout(() => {
+          recordedInPausePhase = false;
+          recordedActiveStartTime = Date.now(); // Reset start time for next active cycle
+          runCycle();
+        }, pauseDelay);
+        return;
+      }
+
+      if (recordedInPausePhase) return;
+
       updateStatusUI(true, `Pola rekam (${recordedDelayIndex + 1}/${currentSettings.recordedDelays.length})...`);
       
       let success = clickAtCoordinates(currentSettings.customClickX, currentSettings.customClickY);
